@@ -1,0 +1,372 @@
+<html>
+    <head>
+        <style>
+            #sc-chart {
+                width:100%;
+                height: 500px;
+                resize: both;
+                overflow: auto;
+                border: 1px dashed #aaa;
+                float: left;
+                margin-left: 0px;
+                margin-bottom: 50px;
+               
+            }
+    
+            svg {
+                width: 100%;
+                height: 500px;
+            }
+    
+            .bangla-text {
+                font-size: 10px;
+            }
+    
+            .base-point{
+               fill: rgb(200, 0, 255);
+            }
+    
+            .legend-text{
+                color: #410404 !important;
+                font-size: 12px;
+            }
+    
+            .chart-text{
+                font-size: 12px;
+            }
+
+            .value-text {
+                fill:"#00FF00";
+                text-shadow: 1px 1px 1px #000;
+            }
+    
+        </style>
+
+    </head>
+    <body>
+            <div id="sc-chart">
+                <svg id="svgCanvas" viewBox="0 0 2500 600" style="border: 1px solid rgb(255, 255, 255);"></svg>
+            </div>
+
+        <script>
+
+            class ScHeatChart{
+
+            // Configuration 
+            SVG_NS = "http://www.w3.org/2000/svg";
+            
+            rectWidth = 100;
+            rectHeight = 50;    
+            chartAreaWidht = 85; //percent
+
+
+            spacing = 0; // Space between rectangles
+            colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2'];
+            fill_colors = ['#d53e4f','#f46d43','#fdae61','#fee08b','#e6f598','#abdda4','#3288bd'];
+
+            strokeColor = '#FFF';
+            // Select the SVG canvas
+           
+            y =20;
+            x = 0;
+
+            data=null;
+
+            legend_data=null;
+            legend_top=0;
+            legend_left=250;
+            legend_bottom_padding = 20;
+            legend_per_column = 3;
+
+            sc_chart = null; //SVG parent container    
+            svg = null;
+            container_height= null;
+            container_width = null;
+            chartWidth = null;
+            chartLeft = null;
+            categoryLength = null;
+            categoryWidth =null;
+
+            show_value = true;
+            constructor(){
+                
+                this.sc_chart = document.getElementById('sc-chart');
+                this.svg = document.getElementById('svgCanvas');
+                this.container_height = this.sc_chart.clientHeight;
+                this.container_width = this.sc_chart.clientWidth;
+
+                this.svg.setAttribute('viewBox', '0 0 '+this.container_width +' '+ this.container_height );
+
+                this.chartWidth = (this.container_width * this.chartAreaWidht) / 100; 
+                this.chartLeft = this.container_width - this.chartWidth;
+
+                this.categoryLength = data.category.length;
+                this.categoryWidth = this.chartWidth / this.categoryLength;
+                this.legend_top = this.y;
+
+                
+            }
+                
+            createText() {
+           
+            }
+
+            getFillColor(i){
+                return this.fill_colors[i];
+            }
+
+            getFillColorByValue(val){
+              
+                switch(true){
+
+                    case (val>=0 && val)<40:
+                        return this.fill_colors[1];
+                    break;
+
+                    case (val>=40 && val)<55:
+                        return this.fill_colors[3];
+                    break;
+
+                    case (val>=55 && val)<70:
+                        return this.fill_colors[4];
+                    break;
+
+                    case (val>=70 && val)<80:
+                        return this.fill_colors[5];
+                    break;
+
+                    case val>=80:
+                        return this.fill_colors[6];
+                    break;
+                }
+            }
+
+            genereateSeries(content){
+                 //Draw row series
+                const text = document.createElementNS(this.SVG_NS, "text");
+                            text.setAttribute("x", 10);
+                            text.setAttribute("y", this.y + 30);
+                            text.setAttribute("font-family", "Arial, sans-serif");
+                            text.setAttribute("font-size", "12");
+                            text.setAttribute("text-align", "right");
+                            text.setAttribute("font-style", "italic");
+                            text.setAttribute("fill", "black");
+                            text.textContent = content;
+                            this.svg.appendChild(text);
+            }
+
+            generate_category(category){
+                let x = this.chartLeft + this.categoryWidth/2;
+                for (let i = 0; i < this.categoryLength; i++) {
+                        //Draw row series
+                        //x = x - (category[i].length * 12)/2;
+
+                        const text = document.createElementNS(this.SVG_NS, "text");
+                            text.setAttribute("x", x - (category[i].length*5/2));
+                            text.setAttribute("y", this.y-10 );
+                            text.setAttribute("font-family", "Arial, sans-serif");
+                            text.setAttribute("font-size", "12");
+                            text.setAttribute("text-align", "right");
+                            text.setAttribute("font-style", "italic");
+                            text.setAttribute("fill", "black");
+                           // text.setAttribute('transform', 'rotate(-60,' + x + ','+ this.y+ ')');
+                            text.textContent = category[i];
+                            this.svg.appendChild(text);
+
+                            x += this.spacing + this.categoryWidth;
+                }
+                 
+            }
+
+            draw_text(content, x, y) {
+                const text = document.createElementNS(this.SVG_NS, "text");
+                            text.setAttribute("x", x);
+                            text.setAttribute("y", y );
+                            text.setAttribute("font-family", "Arial, sans-serif");
+                            text.setAttribute("font-size", "12");
+                            text.setAttribute("text-align", "right");
+                            text.setAttribute("font-style", "italic");
+                            text.setAttribute("font-weight", "bold");
+                            text.setAttribute("fill", "black");                            
+                            text.textContent = content;
+
+                            this.svg.appendChild(text);
+            }
+
+            value_info(value,x,y){
+                
+                    x += this.categoryWidth/2;
+                    y += 5+ this.rectHeight/2;
+                        //Draw row series
+                        const text = document.createElementNS(this.SVG_NS, "text");
+                            text.setAttribute("x", x);
+                            text.setAttribute("y", y );
+                            text.setAttribute("font-family", "Arial, sans-serif");
+                            text.setAttribute("font-size", "12");
+                            text.setAttribute("text-align", "right");
+                            text.setAttribute("font-style", "italic");
+                            text.setAttribute("font-weight", "bold");
+                            text.setAttribute("fill", "white");
+                            text.setAttribute("class", "value-text");
+                            text.textContent = value;
+                            this.svg.appendChild(text);
+
+            }
+
+            draw_rect(x,y,w,h,fill){
+                const rect = document.createElementNS(this.SVG_NS, 'rect');
+                                rect.setAttribute('x',  x); // Fixed x position
+                                rect.setAttribute('y', y); // Dynamic y position
+                                rect.setAttribute('width', w);
+                                rect.setAttribute('height', h);
+                                rect.setAttribute('stroke', this.strokeColor);
+                                rect.setAttribute('fill', fill); // Use a different color for each rectangle
+                                this.svg.appendChild(rect);
+            }
+
+            legend(){
+                //console.log(this.legend_top);
+                //this.legend_left = this.chartWidth;
+                if(this.legend_data==null){
+                    let x = this.legend_left; //this.chartLeft;
+                    for(let i =0; i< this.data.category.length; i++){
+                        this.draw_rect(x,this.legend_top + this.legend_bottom_padding,10,10, this.fill_colors[i]);
+                        this.draw_text(this.data.category[i],x+20, this.legend_top + this.legend_bottom_padding + 10 );
+                        x += 100;
+                    }
+                }
+                else{
+
+                    let x = this.legend_left; //this.chartLeft;
+                    let y = this.legend_top + this.legend_bottom_padding + 10;
+                    let items = 1;
+                    for(let i =0; i< this.legend_data.length; i++){
+                        this.draw_rect(x,y,10,10, this.fill_colors[i]);
+                        this.draw_text(this.data.legend[i].item,x+20, y+10 );
+                        x += (this.data.legend[i].item.length) * 7;
+                        
+                        if(items >= this.legend_per_column){
+                            items = 0;
+                            y += 30;
+                            x = this.legend_left;
+                        }
+                        else{
+                            items++;
+                        }
+                    }
+
+                }
+               
+
+                
+            }
+
+            create_rect(x,y,w,h,fill='none',line='none',line_width=0){
+                const rect = document.createElementNS(this.SVG_NS, 'rect');
+                        rect.setAttribute('x',  x); // Fixed x position
+                        rect.setAttribute('y', y); // Dynamic y position
+                        rect.setAttribute('width', w);
+                        rect.setAttribute('height', h);
+                        rect.setAttribute('stroke', line);
+                        rect.setAttribute('stroke-width', line_width);
+                        //rect.setAttribute('fill', this.getFillColor(i)); // Use a different color for each rectangle
+                        rect.setAttribute('fill', fill);
+                        this.svg.appendChild(rect);
+            }
+
+
+            ScHeat(data){
+
+                //console.log(data);
+                this.data = data;
+               
+                this.legend_data = data.legend;
+
+                this.generate_category(data.category);
+
+                for(let j=0; j<data.series.length;j++){
+
+                    this.x = this.chartLeft;
+
+                    // Draw category
+                    for (let i = 0; i < this.categoryLength; i++) {
+
+                        //Create Rowwise series data
+                        this.genereateSeries(data.series[j].name);
+
+                        //Create HeatBox    
+                        const rect = this.create_rect(this.x, this.y, this.categoryWidth, this.rectHeight,this.getFillColorByValue(data.series[j].data[i]),'#FFF',2) ;
+                        
+                        //generate value lebel   
+                        if(this.show_value)     
+                            this.value_info(data.series[j].data[i], this.x, this.y);
+
+                        this.x += this.spacing + this.categoryWidth;
+                    }
+
+                    this.y += (this.rectHeight + this.spacing) + this.spacing;
+                }
+
+                this.legend_top += this.y ;
+                this.legend();
+
+            }
+            
+        }
+
+        function getRandomNumber() { return Math.floor(Math.random() * 100) + 1};
+        data={
+            
+            'category':['Flagship Performer',
+                        'Premium Performer',
+                        'Compliant Performer',
+                        'Development Required',
+                        'Underperforming'
+                       ],
+
+            'legend':[
+                  {'item':'Flagship Performer (Factories scoring over 80)', 'value': '>=80', 'color':'#e377c2' },
+                  {'item':'Premium Performer (Factories scoring between 70-80)', 'value': '70-79', 'color':'#e377c2' },
+                  {'item':'Compliant Performer (Factories scoring between 55-69)', 'value': '55-69', 'color':'#e377c2' },
+                  {'item':'Development Required (Factories scoring below 55)', 'value': '40-55', 'color':'#e377c2' },
+                  {'item':'Underperforming (Factories scoring below 40)', 'value': '0-40', 'color':'#e377c2' },
+
+                ],
+            
+            'series' :[
+                {
+                    'name': '4A Yarn Dyeing Ltd.',
+                    'data': [getRandomNumber(), getRandomNumber(), getRandomNumber(), getRandomNumber(),getRandomNumber(),60,70],
+                    'color':['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
+                },
+                {
+                    'name': 'ABM Fashion Ltd ',
+                    'data': [getRandomNumber(), getRandomNumber(), getRandomNumber(), getRandomNumber(),getRandomNumber(),60,70],
+                    'color':['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
+                },
+                {
+                    'name': 'Impress Newtex Com. Pvt Ltd ',
+                    'data': [getRandomNumber(), getRandomNumber(), getRandomNumber(), getRandomNumber(),getRandomNumber(),60,70],
+                    'color':['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
+                },
+                {
+                    'name': 'Al-Ittefaq Textiles Ltd.',
+                    'data': [getRandomNumber(), getRandomNumber(), getRandomNumber(), getRandomNumber(),getRandomNumber(),60,70],
+                    'color':['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
+                }
+
+            ]
+        }
+
+        
+        var heat = new ScHeatChart;
+        
+        heat.show_value =true;
+        heat.ScHeat(data);
+
+            
+        </script>
+    </body>
+
+
+</html>
